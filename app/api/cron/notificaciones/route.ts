@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/utils/supabase/server";
+import { getConveniosProximosVencer } from "@/lib/queries";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 function buildFormalEmailHTML(item: {
-  institucion?: string;
-  codigo?: string;
-  pais?: string;
+  institucion?: string | null;
+  codigo?: string | null;
+  pais?: string | null;
   fecha_vencimiento?: string;
   dias_restantes?: number;
-  tipo_convenio?: string;
 }) {
   const dias = item.dias_restantes ?? 0;
   let urgencyTitle = "ALERTA PREVENTIVA (2 Meses)";
@@ -196,10 +196,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, emailResult, recipients });
     }
 
-    // Daily Cron Job Logic
-    const { data: proximos, error } = await supabase.from("convenios_proximos_vencer").select("*");
+    // Dynamic calculation of expiring agreements up to 65 days
+    const proximos = await getConveniosProximosVencer(65);
 
-    if (error || !proximos || proximos.length === 0) {
+    if (!proximos || proximos.length === 0) {
       return NextResponse.json({ message: "No hay convenios pendientes de notificar hoy." });
     }
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { getConveniosProximosVencer } from "@/lib/queries";
 import Link from "next/link";
 import {
   Globe,
@@ -17,27 +18,27 @@ export const revalidate = 0;
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  // Fetch counts from all tables
+  // Fetch counts from all tables and dynamic expiring calculations up to 65 days (2 months)
   const [
     { count: countIntVigentes },
     { count: countNacionales },
     { count: countInternacionales },
     { count: countTramite },
-    { data: proximosVencer },
+    proximosVencer,
   ] = await Promise.all([
     supabase.from("convenios_internacionales_vigentes").select("*", { count: "exact", head: true }),
     supabase.from("convenios_nacionales").select("*", { count: "exact", head: true }),
     supabase.from("convenios_internacionales").select("*", { count: "exact", head: true }),
     supabase.from("convenios_tramite").select("*", { count: "exact", head: true }),
-    supabase.from("convenios_proximos_vencer").select("*").order("dias_restantes", { ascending: true }).limit(15),
+    getConveniosProximosVencer(65),
   ]);
 
-  // Threshold groupings
-  const urgentes1d = proximosVencer?.filter((item) => item.dias_restantes <= 1) || [];
-  const urgentes5d = proximosVencer?.filter((item) => item.dias_restantes > 1 && item.dias_restantes <= 5) || [];
-  const control15d = proximosVencer?.filter((item) => item.dias_restantes > 5 && item.dias_restantes <= 15) || [];
-  const prevencion30d = proximosVencer?.filter((item) => item.dias_restantes > 15 && item.dias_restantes <= 30) || [];
-  const prevencion60d = proximosVencer?.filter((item) => item.dias_restantes > 30 && item.dias_restantes <= 65) || [];
+  // Threshold groupings calculated dynamically
+  const urgentes1d = proximosVencer.filter((item) => item.dias_restantes <= 1);
+  const urgentes5d = proximosVencer.filter((item) => item.dias_restantes > 1 && item.dias_restantes <= 5);
+  const control15d = proximosVencer.filter((item) => item.dias_restantes > 5 && item.dias_restantes <= 15);
+  const prevencion30d = proximosVencer.filter((item) => item.dias_restantes > 15 && item.dias_restantes <= 30);
+  const prevencion60d = proximosVencer.filter((item) => item.dias_restantes > 30 && item.dias_restantes <= 65);
 
   return (
     <div className="space-y-6">
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
             Gestión de Convenios ORI 2026
           </h1>
           <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-            Control en tiempo real, alertas automáticas formales a 60 días, 30 días, 15 días, 5 días y 1 día, y trazabilidad institucional.
+            Cálculo dinámico en tiempo real, alertas automáticas formales a 60 días (2 Meses), 30 días (1 Mes), 15 días, 5 días y 1 día.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -125,7 +126,7 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-amber-400" />
             <h2 className="text-base font-bold text-white">
-              Sistema de Alertas por Vencimiento (5 Reglas)
+              Sistema de Alertas Calculado en Tiempo Real ({proximosVencer.length} Convenios)
             </h2>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
@@ -137,11 +138,11 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {(!proximosVencer || proximosVencer.length === 0) ? (
+        {proximosVencer.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             <p className="font-semibold text-slate-300">No hay convenios en umbral de vencimiento próximo hoy.</p>
-            <p className="text-slate-500">Todos los convenios están al día o fuera del límite de 60 días.</p>
+            <p className="text-slate-500">Todos los convenios están al día o fuera del límite de 65 días (2 meses).</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -174,7 +175,7 @@ export default async function DashboardPage() {
 
               return (
                 <div
-                  key={item.id}
+                  key={`${item.tabla_origen}_${item.id}`}
                   className="flex items-center justify-between p-3 rounded-lg bg-[#0f172a] border border-[#334155] hover:border-slate-600 transition-colors text-xs"
                 >
                   <div className="flex items-center gap-3">
