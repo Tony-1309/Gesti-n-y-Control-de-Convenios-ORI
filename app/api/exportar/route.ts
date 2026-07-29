@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/server";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import path from "path";
 
 export async function GET() {
   try {
     const supabase = createAdminClient();
 
-    // Fetch data from all tables
+    // 1. Fetch current data from Supabase for all 6 tables
     const [
       { data: intVigentes },
       { data: nacionales },
@@ -15,127 +16,228 @@ export async function GET() {
       { data: redes },
       { data: investigacion },
     ] = await Promise.all([
-      supabase.from("convenios_internacionales_vigentes").select("*"),
-      supabase.from("convenios_nacionales").select("*"),
-      supabase.from("convenios_internacionales").select("*"),
-      supabase.from("convenios_tramite").select("*"),
-      supabase.from("convenios_redes").select("*"),
-      supabase.from("convenios_investigacion").select("*"),
+      supabase.from("convenios_internacionales_vigentes").select("*").order("created_at", { ascending: true }),
+      supabase.from("convenios_nacionales").select("*").order("created_at", { ascending: true }),
+      supabase.from("convenios_internacionales").select("*").order("created_at", { ascending: true }),
+      supabase.from("convenios_tramite").select("*").order("created_at", { ascending: true }),
+      supabase.from("convenios_redes").select("*").order("created_at", { ascending: true }),
+      supabase.from("convenios_investigacion").select("*").order("created_at", { ascending: true }),
     ]);
 
-    const workbook = XLSX.utils.book_new();
+    // 2. Load original template file preserving ALL formatting, headers, styles & formulas
+    const templatePath = path.join(process.cwd(), "templates", "matriz_template.xlsx");
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(templatePath);
 
-    // Sheet 1: Convenios Int. vigentes
+    const parseVal = (v: any) => (v === null || v === undefined ? "" : v);
+
+    // Function to apply cell values while copying styles from template row
+    const writeSheetRows = (
+      sheetName: string,
+      startRow: number,
+      data: any[],
+      mapper: (item: any) => any[]
+    ) => {
+      const sheet = workbook.getWorksheet(sheetName);
+      if (!sheet || !data) return;
+
+      // Sample template style row (first data row)
+      const templateRow = sheet.getRow(startRow);
+
+      data.forEach((item, index) => {
+        const currentRowIndex = startRow + index;
+        const rowValues = mapper(item);
+        const row = sheet.getRow(currentRowIndex);
+
+        rowValues.forEach((val, colIdx) => {
+          const colNum = colIdx + 1;
+          const cell = row.getCell(colNum);
+          const sampleCell = templateRow.getCell(colNum);
+
+          // Preserve styles from original template cell
+          if (sampleCell.style) {
+            cell.style = JSON.parse(JSON.stringify(sampleCell.style));
+          }
+
+          cell.value = parseVal(val);
+        });
+
+        row.commit();
+      });
+
+      // Clear any extra remaining rows from template if dataset is smaller
+      const totalRows = sheet.rowCount;
+      const lastWrittenRow = startRow + data.length - 1;
+      for (let r = lastWrittenRow + 1; r <= totalRows; r++) {
+        const rowToClear = sheet.getRow(r);
+        rowToClear.eachCell((cell) => {
+          cell.value = null;
+        });
+      }
+    };
+
+    // Sheet 1: Convenios Int. vigentes (Starts row 11)
     if (intVigentes) {
-      const ws1 = XLSX.utils.json_to_sheet(
-        intVigentes.map((r: any) => ({
-          "CODIFICACION": r.codificacion,
-          "Convenio encontrado en digital": r.convenio_digital,
-          "Convenio encontrado en fisico Archivo.": r.convenio_fisico,
-          "UNIVERSIDAD": r.universidad,
-          "PAIS": r.pais,
-          "CUIUDAD/PAIS": r.ciudad_pais,
-          "TIPO DE CONVENIO E INTERCAMBIO": r.tipo_convenio_intercambio,
-          "TIPO DE CONVENIO": r.tipo_convenio,
-          "CONTACTO OFICINA DE RELACIONES INTERNACIONALES": r.contacto_ori,
-          "CORREO ELECTRONICO": r.correo_electronico,
-          "VIGENCIA DESDE": r.vigencia_desde_original,
-          "VIGENCIA HASTA": r.vigencia_hasta_original,
-          "ESTADO GENERAL ACTUAL DEL CONVENIO O ACUERDO": r.estado_general,
-          "DURACIÓN": r.duracion,
-          "OBJETIVO": r.objetivo,
-          "PERSONA QUE REGISTRA LA CARPETA": r.persona_registra,
-          "VIGENCIA DESDE (actual)": r.vigencia_desde_actual,
-          "VIGENCIA HASTA (actual)": r.vigencia_hasta_actual,
-          "Estado Preventivo": r.estado_preventivo,
-          "Observaciones": r.observaciones,
-        }))
-      );
-      XLSX.utils.book_append_sheet(workbook, ws1, "Convenios Int. vigentes");
+      writeSheetRows("Convenios Int. vigentes", 11, intVigentes, (r) => [
+        r.codificacion,
+        r.convenio_digital,
+        r.convenio_fisico,
+        r.universidad,
+        r.pais,
+        r.ciudad_pais,
+        r.tipo_convenio_intercambio,
+        r.tipo_convenio,
+        r.contacto_ori,
+        r.correo_electronico,
+        r.vigencia_desde_original,
+        r.vigencia_hasta_original,
+        r.estado_general,
+        r.duracion,
+        r.objetivo,
+        r.persona_registra,
+        r.vigencia_desde_actual,
+        r.vigencia_hasta_actual,
+        r.estado_preventivo,
+        r.observaciones,
+        r.link_documento,
+      ]);
     }
 
-    // Sheet 2: Convenios IES Nacionales
+    // Sheet 2: Convenios IES Nacionales (Starts row 10)
+    const nacSheetName = workbook.worksheets.find((w) => w.name.includes("Nacionales"))?.name || "Convenios IES Nacionales ";
     if (nacionales) {
-      const ws2 = XLSX.utils.json_to_sheet(
-        nacionales.map((r: any) => ({
-          "CÓDIGO": r.codigo,
-          "N.": r.numero,
-          "Convenio encontrado en digital": r.convenio_digital,
-          "Convenio encontrado en físico-Archivo": r.convenio_fisico,
-          "UNIVERSIDAD O ENTIDAD": r.universidad_entidad,
-          "CIUDAD": r.ciudad,
-          "TIPO DE CONVENIO E INTERCAMBIO": r.tipo_convenio_intercambio,
-          "CONTACTO DE LA OFICINA DE RELACIONES INTERNACIONALES": r.contacto_ori,
-          "CORREO ELECTRONICO": r.correo_electronico,
-          "VIGENCIA DESDE": r.vigencia_desde_original,
-          "VIGENCIA HASTA": r.vigencia_hasta_original,
-          "ESTADO GENERAL ACTUAL DEL CONVENIO O ACUERDO": r.estado_general,
-          "DURACIÓN": r.duracion,
-          "OBJETIVO": r.objetivo,
-          "PERSONA QUE REGISTRA LA CARPETA": r.persona_registra,
-          "VIGENCIA DESDE (actual)": r.vigencia_desde_actual,
-          "VIGENCIA HASTA (actual)": r.vigencia_hasta_actual,
-          "Estado Preventivo": r.estado_preventivo,
-          "Observaciones": r.observaciones,
-        }))
-      );
-      XLSX.utils.book_append_sheet(workbook, ws2, "Convenios IES Nacionales");
+      writeSheetRows(nacSheetName, 10, nacionales, (r) => [
+        r.codigo,
+        r.numero,
+        r.convenio_digital,
+        r.convenio_fisico,
+        r.universidad_entidad,
+        r.ciudad,
+        r.tipo_convenio_intercambio,
+        r.contacto_ori,
+        r.correo_electronico,
+        r.vigencia_desde_original,
+        r.vigencia_hasta_original,
+        r.estado_general,
+        r.duracion,
+        r.objetivo,
+        r.persona_registra,
+        r.vigencia_desde_actual,
+        r.vigencia_hasta_actual,
+        "",
+        r.estado_preventivo,
+        r.observaciones,
+        r.link_documento,
+      ]);
     }
 
-    // Sheet 3: Convenios IES Internacionales
+    // Sheet 3: Convenios IES Internacionales (Starts row 11)
     if (internacionales) {
-      const ws3 = XLSX.utils.json_to_sheet(
-        internacionales.map((r: any) => ({
-          "CODIFICACION": r.codificacion,
-          "UNIVERSIDAD": r.universidad,
-          "PAIS": r.pais,
-          "TIPO DE CONVENIO": r.tipo_convenio,
-          "ESTADO GENERAL": r.estado_general,
-          "VIGENCIA HASTA (actual)": r.vigencia_hasta_actual,
-        }))
-      );
-      XLSX.utils.book_append_sheet(workbook, ws3, "Convenios IES Internacionales");
+      writeSheetRows("Convenios IES Internacionales", 11, internacionales, (r) => [
+        r.codificacion,
+        r.convenio_digital,
+        r.convenio_fisico,
+        r.universidad,
+        r.pais,
+        r.ciudad_pais,
+        r.tipo_convenio_intercambio,
+        r.tipo_convenio,
+        r.contacto_ori,
+        r.correo_electronico,
+        r.vigencia_desde_original,
+        r.vigencia_hasta_original,
+        r.estado_general,
+        r.duracion,
+        r.objetivo,
+        r.persona_registra,
+        r.vigencia_desde_actual,
+        r.vigencia_hasta_actual,
+        "",
+        r.estado_preventivo,
+        r.observaciones,
+        r.link_documento,
+      ]);
     }
 
-    // Sheet 4: Convenios en Trámite
+    // Sheet 4: Convenios en Trámite (Starts row 9)
+    const tramiteSheetName = workbook.worksheets.find((w) => w.name.includes("Trámite") || w.name.includes("Tramite"))?.name || "Convenios en Trámite";
     if (tramite) {
-      const ws4 = XLSX.utils.json_to_sheet(
-        tramite.map((r: any) => ({
-          "ITEM": r.item,
-          "FECHA DE RECEPCIÓ N": r.fecha_recepcion,
-          "FACULTAD SOLICITANTE": r.facultad_solicitante,
-          "PROGRAMA ACADÉMICO": r.programa_academico,
-          "PERSONA SOLICITANTE": r.persona_solicitante,
-          "TIPO DE CONVENIO": r.tipo_convenio,
-          "INSTITUCIÓN": r.institucion,
-          "PAIS/CIUDAD": r.pais_ciudad,
-          "CONTACTO": r.contacto,
-          "ESTADO DEL TRÁMITE": r.estado_tramite,
-          "AÑO GESTIÓN": r.anio_gestion,
-          "OBSERVACIONES": r.observaciones,
-        }))
-      );
-      XLSX.utils.book_append_sheet(workbook, ws4, "Convenios en Trámite");
+      writeSheetRows(tramiteSheetName, 9, tramite, (r) => [
+        r.item,
+        r.fecha_recepcion,
+        r.facultad_solicitante,
+        r.programa_academico,
+        r.persona_solicitante,
+        r.tipo_convenio,
+        r.institucion,
+        r.pais_ciudad,
+        r.contacto,
+        r.estado_tramite,
+        r.anio_gestion,
+        r.observaciones,
+        r.accion_pendiente,
+      ]);
     }
 
-    // Sheet 5: REDES
+    // Sheet 5: REDES (Starts row 3)
     if (redes) {
-      const ws5 = XLSX.utils.json_to_sheet(redes);
-      XLSX.utils.book_append_sheet(workbook, ws5, "REDES");
+      writeSheetRows("REDES", 3, redes, (r) => [
+        r.codificacion,
+        r.numero,
+        r.convenio_digital,
+        r.convenio_fisico,
+        r.red_nombre,
+        r.pais,
+        r.ciudad_pais,
+        r.nombre_convenio,
+        r.tipo_convenio,
+        r.contacto,
+        r.correo_electronico,
+        r.vigencia_desde,
+        r.vigencia_hasta,
+        r.estado_general,
+        r.duracion,
+        r.objetivo,
+        r.persona_registra,
+        r.vigencia_desde_actual,
+        r.vigencia_hasta_actual,
+      ]);
     }
 
-    // Sheet 6: Investigación
+    // Sheet 6: Investigación (Starts row 3)
+    const invSheetName = workbook.worksheets.find((w) => w.name.includes("Investigación") || w.name.includes("Investigacion"))?.name || "Investigación";
     if (investigacion) {
-      const ws6 = XLSX.utils.json_to_sheet(investigacion);
-      XLSX.utils.book_append_sheet(workbook, ws6, "Investigación");
+      writeSheetRows(invSheetName, 3, investigacion, (r) => [
+        r.codificacion,
+        r.numero,
+        r.convenio_digital,
+        r.convenio_fisico,
+        r.universidad_entidad,
+        r.pais,
+        r.ciudad_pais,
+        r.nombre_convenio,
+        r.tipo_convenio,
+        r.contacto,
+        r.correo_electronico,
+        r.vigencia_desde_original,
+        r.vigencia_hasta_original,
+        r.estado_general,
+        r.duracion,
+        r.objetivo,
+        r.persona_registra,
+        r.vigencia_desde_actual,
+        r.vigencia_hasta_actual,
+      ]);
     }
 
-    const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+    // Generate output Excel buffer with full original styling
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="Matriz_Gestion_Convenios_ORI_2026_${new Date().toISOString().split("T")[0]}.xlsx"`,
+        "Content-Disposition": `attachment; filename="Matriz_Gestion_y_Control_Convenios_ORI_2026.xlsx"`,
       },
     });
   } catch (error: any) {
