@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Send,
   CheckCircle,
+  MailCheck,
 } from "lucide-react";
 
 export default function ConvenioDetailPage({
@@ -25,8 +26,10 @@ export default function ConvenioDetailPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  
+  const [sendingRealEmail, setSendingRealEmail] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
-  const [testEmailResult, setTestEmailResult] = useState<string | null>(null);
+  const [emailResult, setEmailResult] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -56,9 +59,10 @@ export default function ConvenioDetailPage({
     }
   };
 
-  const handleSendTestNotification = async () => {
-    setSendingTestEmail(true);
-    setTestEmailResult(null);
+  // Send email with the REAL DATA of this specific agreement
+  const handleSendRealNotification = async () => {
+    setSendingRealEmail(true);
+    setEmailResult(null);
 
     try {
       const res = await fetch("/api/cron/notificaciones", {
@@ -67,17 +71,42 @@ export default function ConvenioDetailPage({
         body: JSON.stringify({
           convenioId: id,
           tabla,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEmailResult(`¡Alerta enviada exitosamente con los datos de: ${data.item || 'este convenio'} a ${data.recipients?.join(', ')}!`);
+      } else {
+        setEmailResult(`Error: ${data.error || "No se pudo enviar el correo."}`);
+      }
+    } catch (e: any) {
+      setEmailResult(`Error: ${e.message}`);
+    } finally {
+      setSendingRealEmail(false);
+    }
+  };
+
+  // Send generic test demo email
+  const handleSendTestNotification = async () => {
+    setSendingTestEmail(true);
+    setEmailResult(null);
+
+    try {
+      const res = await fetch("/api/cron/notificaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           test: true,
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        setTestEmailResult("¡Correo institucional enviado exitosamente!");
+        setEmailResult("¡Correo de prueba (Demo) enviado exitosamente!");
       } else {
-        setTestEmailResult(`Error: ${data.error || "No se pudo enviar el correo."}`);
+        setEmailResult(`Error: ${data.error || "No se pudo enviar el correo de prueba."}`);
       }
     } catch (e: any) {
-      setTestEmailResult(`Error: ${e.message}`);
+      setEmailResult(`Error: ${e.message}`);
     } finally {
       setSendingTestEmail(false);
     }
@@ -243,23 +272,37 @@ export default function ConvenioDetailPage({
           </label>
         </div>
 
-        <div className="pt-2 border-t border-[#334155] flex items-center justify-between">
+        {/* Action Buttons for Emailing */}
+        <div className="pt-3 border-t border-[#334155] flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[11px] text-slate-400">
-            Prueba de correo institucional formal con los datos de este convenio:
+            Envía una notificación por correo formal a la cuenta oficial de la ORI:
           </p>
-          <button
-            onClick={handleSendTestNotification}
-            disabled={sendingTestEmail}
-            className="btn btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5"
-          >
-            <Send className="w-3.5 h-3.5 text-amber-400" />
-            <span>{sendingTestEmail ? "Enviando..." : "Enviar Correo Prueba"}</span>
-          </button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={handleSendRealNotification}
+              disabled={sendingRealEmail}
+              className="btn btn-gold text-xs py-2 px-3.5 flex items-center justify-center gap-1.5 shadow font-semibold w-full sm:w-auto"
+            >
+              <MailCheck className="w-4 h-4" />
+              <span>{sendingRealEmail ? "Enviando Alerta..." : "Enviar Alerta de ESTE Convenio"}</span>
+            </button>
+
+            <button
+              onClick={handleSendTestNotification}
+              disabled={sendingTestEmail}
+              className="btn btn-secondary text-xs py-2 px-3 flex items-center justify-center gap-1.5 text-slate-300 w-full sm:w-auto"
+            >
+              <Send className="w-3.5 h-3.5 text-slate-400" />
+              <span>{sendingTestEmail ? "Enviando..." : "Correo Prueba (Demo)"}</span>
+            </button>
+          </div>
         </div>
 
-        {testEmailResult && (
-          <div className="p-2.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs">
-            {testEmailResult}
+        {emailResult && (
+          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-blue-400 shrink-0" />
+            <span>{emailResult}</span>
           </div>
         )}
       </div>

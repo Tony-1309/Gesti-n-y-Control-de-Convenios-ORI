@@ -72,7 +72,7 @@ function buildFormalEmailHTML(item: {
                 <td style="padding: 25px 30px 15px 30px;">
                   <p style="margin: 0; font-size: 14px; color: #e2e8f0; line-height: 1.6;">
                     Cordial saludo,<br><br>
-                    Nos dirigimos a usted para informarle de manera preventiva sobre la próxima culminación de la vigencia del convenio interinstitucional detallado a continuación:
+                    Nos dirigimos a usted para informarle de manera preventiva sobre el estado y vigencia del convenio interinstitucional detallado a continuación:
                   </p>
                 </td>
               </tr>
@@ -160,7 +160,7 @@ function buildFormalEmailHTML(item: {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { test, customEmail } = body;
+    const { test, customEmail, convenioId, tabla } = body;
 
     const supabase = createAdminClient();
 
@@ -176,7 +176,65 @@ export async function POST(request: Request) {
 
     const senderEmail = process.env.NOTIFICATION_EMAIL_FROM || "onboarding@resend.dev";
 
-    // Single test email
+    // 1. Send SPECIFIC AGREEMENT Email Alert if convenioId and tabla are provided
+    if (convenioId && tabla) {
+      const { data: realItem, error: fetchErr } = await supabase
+        .from(tabla)
+        .select("*")
+        .eq("id", convenioId)
+        .single();
+
+      if (fetchErr || !realItem) {
+        return NextResponse.json({ error: "Convenio no encontrado para enviar alerta." }, { status: 404 });
+      }
+
+      const name = realItem.universidad || realItem.universidad_entidad || realItem.red_nombre || realItem.institucion || "Convenio Sin Nombre";
+      const code = realItem.codificacion || realItem.codigo || realItem.item || "Sin Código";
+      const country = realItem.pais || realItem.ciudad || realItem.pais_ciudad || "N/A";
+      const vencStr = realItem.vigencia_hasta_actual || realItem.vigencia_hasta;
+
+      let dias = 0;
+      if (vencStr) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const vencDate = new Date(vencStr.substring(0, 10) + "T00:00:00");
+        if (!isNaN(vencDate.getTime())) {
+          const diffMs = vencDate.getTime() - today.getTime();
+          dias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        }
+      }
+
+      const emailHTML = buildFormalEmailHTML({
+        institucion: name,
+        codigo: code,
+        pais: country,
+        fecha_vencimiento: vencStr ? vencStr.substring(0, 10) : "N/A",
+        dias_restantes: dias,
+      });
+
+      const { data: emailResult, error: sendError } = await resend.emails.send({
+        from: senderEmail,
+        to: recipients,
+        subject: `🔔 [NOTIFICACIÓN ORI] Alerta de Convenio: ${name} (${code})`,
+        html: emailHTML,
+      });
+
+      if (sendError) {
+        return NextResponse.json({ error: sendError.message }, { status: 400 });
+      }
+
+      // Log notification
+      await supabase.from("notificaciones_log").insert({
+        convenio_id: convenioId,
+        tabla_origen: tabla,
+        tipo_notificacion: "manual_detail_alert",
+        destinatario_email: recipients.join(", "),
+      });
+
+      return NextResponse.json({ success: true, emailResult, recipients, item: name });
+    }
+
+    // 2. Generic Demo test email
     if (test) {
       const testItem = {
         institucion: "Universidad de Prueba (Demostración ORI)",
@@ -203,7 +261,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, emailResult, recipients });
     }
 
-    // Dynamic calculation of expiring agreements up to 65 days
+    // 3. Dynamic calculation of expiring agreements up to 65 days (Cron Job)
     const proximos = await getConveniosProximosVencer(65);
 
     if (!proximos || proximos.length === 0) {
