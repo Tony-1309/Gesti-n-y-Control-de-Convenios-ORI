@@ -2,22 +2,16 @@
 
 import { useState, useEffect } from "react";
 import {
-  Settings,
   Mail,
   Bell,
   Send,
   CheckCircle2,
   Plus,
   X,
-  Layers,
-  ShieldCheck,
-  ToggleLeft,
-  ToggleRight,
-  AlertTriangle,
 } from "lucide-react";
 
 export default function ConfiguracionPage() {
-  const [emails, setEmails] = useState<string[]>(["salcedoantony1309@gmail.com"]);
+  const [emails, setEmails] = useState<string[]>(["antonyst.salcedo@umariana.edu.co"]);
   const [newEmail, setNewEmail] = useState("");
   const [savingEmails, setSavingEmails] = useState(false);
   const [emailSaveSuccess, setEmailSaveSuccess] = useState(false);
@@ -146,7 +140,7 @@ export default function ConfiguracionPage() {
       <div>
         <h1 className="text-xl font-bold text-white">Configuración del Sistema & Control de Alertas</h1>
         <p className="text-xs text-slate-400 mt-1">
-          Gestione las reglas de notificación automática, receptores de correos y comportamiento global del sistema.
+          Gestione las reglas de notificación automática, receptores de correos e integración con Resend.
         </p>
       </div>
 
@@ -156,7 +150,7 @@ export default function ConfiguracionPage() {
           <div className="flex items-center gap-2">
             <Mail className="w-5 h-5 text-amber-400" />
             <h2 className="text-sm font-bold text-white">
-              Correos Electrónicos Destinatarios de Alertas
+              Correos Electrónicos Destinatarios de Alertas (Resend)
             </h2>
           </div>
 
@@ -168,14 +162,14 @@ export default function ConfiguracionPage() {
         </div>
 
         <p className="text-xs text-slate-400">
-          Todas las alertas automáticas de vencimiento (2 meses, 1 mes, 15 días, 5 días y 1 día) se enviarán a los siguientes correos institucionales registrados:
+          Todas las alertas automáticas formales de vencimiento (2 meses, 1 mes, 15 días, 5 días y 1 día) se enviarán a los siguientes correos registrados:
         </p>
 
         {/* Add Email input */}
         <div className="flex items-center gap-2">
           <input
             type="email"
-            placeholder="Agregar nuevo correo (ej: ori@umariana.edu.co)..."
+            placeholder="Agregar nuevo correo (ej: antonyst.salcedo@umariana.edu.co)..."
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             onKeyDown={(e) => {
