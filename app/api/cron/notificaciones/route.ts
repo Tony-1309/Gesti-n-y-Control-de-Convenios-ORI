@@ -3,10 +3,7 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/utils/supabase/server";
 import { getConveniosProximosVencer } from "@/lib/queries";
 
-// Encoded fallback key to prevent GitHub secret scanner from blocking push while guaranteeing functionality
-const fallbackKey = Buffer.from("cmVfWlVDZjFMb3NfQ0hLejdSaTlhakIxbUhwMzVrYTlFaTgy", "base64").toString("utf-8");
-const resendKey = process.env.RESEND_API_KEY || fallbackKey;
-const resend = new Resend(resendKey);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function buildFormalEmailHTML(item: {
   institucion?: string | null;
@@ -177,7 +174,7 @@ export async function POST(request: Request) {
       recipients = [process.env.NOTIFICATION_EMAIL_TO || "antonyst.salcedo@umariana.edu.co"];
     }
 
-    const primaryRecipient = "antonyst.salcedo@umariana.edu.co";
+    const senderEmail = process.env.NOTIFICATION_EMAIL_FROM || "onboarding@resend.dev";
 
     // Single test email
     if (test) {
@@ -191,10 +188,10 @@ export async function POST(request: Request) {
 
       const emailHTML = buildFormalEmailHTML(testItem);
 
-      // Resend API send
+      // Resend API send to all registered recipients
       const { data: emailResult, error: sendError } = await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: [primaryRecipient],
+        from: senderEmail,
+        to: recipients,
         subject: "🔔 [NOTIFICACIÓN ORI] Prueba de Alerta de Convenio - Universidad Mariana",
         html: emailHTML,
       });
@@ -203,7 +200,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: sendError.message }, { status: 400 });
       }
 
-      return NextResponse.json({ success: true, emailResult, recipients: [primaryRecipient] });
+      return NextResponse.json({ success: true, emailResult, recipients });
     }
 
     // Dynamic calculation of expiring agreements up to 65 days
@@ -231,8 +228,8 @@ export async function POST(request: Request) {
       const emailHTML = buildFormalEmailHTML(item);
 
       const { data: resData, error: sendErr } = await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: [primaryRecipient],
+        from: senderEmail,
+        to: recipients,
         subject: `⚠️ [NOTIFICACIÓN ORI] Convenio Próximo a Vencer (${dias} Días): ${item.institucion || item.codigo}`,
         html: emailHTML,
       });
@@ -243,7 +240,7 @@ export async function POST(request: Request) {
           convenio_id: item.id,
           tabla_origen: item.tabla_origen,
           tipo_notificacion: `${dias}_dias`,
-          destinatario_email: primaryRecipient,
+          destinatario_email: recipients.join(", "),
         });
 
         sentCount++;
