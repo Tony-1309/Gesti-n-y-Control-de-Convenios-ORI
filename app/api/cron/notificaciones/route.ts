@@ -171,7 +171,7 @@ export async function POST(request: Request) {
     if (customEmail) {
       recipients = [customEmail];
     } else if (recipients.length === 0) {
-      recipients = [process.env.NOTIFICATION_EMAIL_TO || "antonyst.salcedo@umariana.edu.co"];
+      recipients = [process.env.NOTIFICATION_EMAIL_TO || "relacionconvenios@umariana.edu.co"];
     }
 
     const senderEmail = process.env.NOTIFICATION_EMAIL_FROM || "onboarding@resend.dev";
@@ -188,7 +188,7 @@ export async function POST(request: Request) {
 
       const emailHTML = buildFormalEmailHTML(testItem);
 
-      // Resend API send to all registered recipients
+      // Resend API send to configured recipients
       const { data: emailResult, error: sendError } = await resend.emails.send({
         from: senderEmail,
         to: recipients,

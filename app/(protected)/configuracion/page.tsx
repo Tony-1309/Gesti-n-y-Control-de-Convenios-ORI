@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export default function ConfiguracionPage() {
-  const [emails, setEmails] = useState<string[]>(["antonyst.salcedo@umariana.edu.co"]);
+  const [emails, setEmails] = useState<string[]>(["relacionconvenios@umariana.edu.co"]);
   const [newEmail, setNewEmail] = useState("");
   const [savingEmails, setSavingEmails] = useState(false);
   const [emailSaveSuccess, setEmailSaveSuccess] = useState(false);
@@ -169,7 +169,7 @@ export default function ConfiguracionPage() {
         <div className="flex items-center gap-2">
           <input
             type="email"
-            placeholder="Agregar nuevo correo (ej: antonyst.salcedo@umariana.edu.co)..."
+            placeholder="Agregar nuevo correo (ej: relacionconvenios@umariana.edu.co)..."
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             onKeyDown={(e) => {

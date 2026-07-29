@@ -12,7 +12,7 @@ export async function GET() {
 
     // Default configuration if empty
     const config = data || {
-      emails_notificacion: ["antonyst.salcedo@umariana.edu.co", "salcedoantony1309@gmail.com", "ori@umariana.edu.co"],
+      emails_notificacion: ["relacionconvenios@umariana.edu.co"],
       umbral_dias_1: 60,
       umbral_dias_2: 30,
       umbral_dias_3: 15,
