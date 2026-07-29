@@ -5,16 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import {
   Bell,
-  BellOff,
   Save,
   ArrowLeft,
-  Calendar,
   Send,
-  Building,
-  Mail,
-  FileText,
   CheckCircle,
-  AlertTriangle,
 } from "lucide-react";
 
 export default function ConvenioDetailPage({
@@ -78,7 +72,7 @@ export default function ConvenioDetailPage({
       });
       const data = await res.json();
       if (res.ok) {
-        setTestEmailResult("¡Correo de notificación enviado exitosamente!");
+        setTestEmailResult("¡Correo institucional enviado exitosamente!");
       } else {
         setTestEmailResult(`Error: ${data.error || "No se pudo enviar el correo."}`);
       }
@@ -197,29 +191,39 @@ export default function ConvenioDetailPage({
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
           <label className="p-3 rounded-lg bg-[#0f172a] border border-[#334155] flex flex-col justify-between gap-2 cursor-pointer">
-            <span className="text-xs font-semibold text-blue-400">🔵 Alertar a 15 Días</span>
+            <span className="text-xs font-semibold text-blue-400">🔵 2 Meses</span>
             <input
               type="checkbox"
-              checked={convenio.notificacion_15dias !== false}
-              onChange={(e) => handleChange("notificacion_15dias", e.target.checked)}
+              checked={convenio.notificacion_60dias !== false}
+              onChange={(e) => handleChange("notificacion_60dias", e.target.checked)}
               className="w-4 h-4 accent-blue-500"
             />
           </label>
 
           <label className="p-3 rounded-lg bg-[#0f172a] border border-[#334155] flex flex-col justify-between gap-2 cursor-pointer">
-            <span className="text-xs font-semibold text-yellow-400">🟡 Alertar a 10 Días</span>
+            <span className="text-xs font-semibold text-blue-300">🔵 1 Mes</span>
             <input
               type="checkbox"
-              checked={convenio.notificacion_10dias !== false}
-              onChange={(e) => handleChange("notificacion_10dias", e.target.checked)}
+              checked={convenio.notificacion_30dias !== false}
+              onChange={(e) => handleChange("notificacion_30dias", e.target.checked)}
+              className="w-4 h-4 accent-blue-400"
+            />
+          </label>
+
+          <label className="p-3 rounded-lg bg-[#0f172a] border border-[#334155] flex flex-col justify-between gap-2 cursor-pointer">
+            <span className="text-xs font-semibold text-yellow-400">🟡 15 Días</span>
+            <input
+              type="checkbox"
+              checked={convenio.notificacion_15dias !== false}
+              onChange={(e) => handleChange("notificacion_15dias", e.target.checked)}
               className="w-4 h-4 accent-yellow-500"
             />
           </label>
 
           <label className="p-3 rounded-lg bg-[#0f172a] border border-[#334155] flex flex-col justify-between gap-2 cursor-pointer">
-            <span className="text-xs font-semibold text-amber-400">🟠 Alertar a 5 Días</span>
+            <span className="text-xs font-semibold text-amber-400">🟠 5 Días</span>
             <input
               type="checkbox"
               checked={convenio.notificacion_5dias !== false}
@@ -229,7 +233,7 @@ export default function ConvenioDetailPage({
           </label>
 
           <label className="p-3 rounded-lg bg-[#0f172a] border border-[#334155] flex flex-col justify-between gap-2 cursor-pointer">
-            <span className="text-xs font-semibold text-red-400">🔴 Alertar a 1 Día</span>
+            <span className="text-xs font-semibold text-red-400">🔴 1 Día</span>
             <input
               type="checkbox"
               checked={convenio.notificacion_1dia !== false}
@@ -241,7 +245,7 @@ export default function ConvenioDetailPage({
 
         <div className="pt-2 border-t border-[#334155] flex items-center justify-between">
           <p className="text-[11px] text-slate-400">
-            Prueba de notificación por correo (envía alerta inmediata via Resend API):
+            Prueba de correo institucional formal con los datos de este convenio:
           </p>
           <button
             onClick={handleSendTestNotification}

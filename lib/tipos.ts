@@ -9,6 +9,18 @@ export interface PerfilUsuario {
   created_at: string;
 }
 
+export interface ConfiguracionApp {
+  id: string;
+  emails_notificacion: string[];
+  umbral_dias_1: number;
+  umbral_dias_2: number;
+  umbral_dias_3: number;
+  umbral_dias_4: number;
+  umbral_dias_5: number;
+  hora_cron_utc: string;
+  updated_at: string;
+}
+
 export interface ConvenioIntVigente {
   id: string;
   codificacion: string | null;
@@ -33,8 +45,9 @@ export interface ConvenioIntVigente {
   observaciones: string | null;
   link_documento: string | null;
   notificaciones_activas: boolean;
+  notificacion_60dias?: boolean;
+  notificacion_30dias?: boolean;
   notificacion_15dias: boolean;
-  notificacion_10dias: boolean;
   notificacion_5dias: boolean;
   notificacion_1dia: boolean;
   razon_desactivacion: string | null;
@@ -66,8 +79,9 @@ export interface ConvenioNacional {
   observaciones: string | null;
   link_documento: string | null;
   notificaciones_activas: boolean;
+  notificacion_60dias?: boolean;
+  notificacion_30dias?: boolean;
   notificacion_15dias: boolean;
-  notificacion_10dias: boolean;
   notificacion_5dias: boolean;
   notificacion_1dia: boolean;
   razon_desactivacion: string | null;
@@ -119,8 +133,9 @@ export interface ConvenioRed {
   vigencia_hasta_actual: string | null;
   estado_preventivo: string | null;
   notificaciones_activas: boolean;
+  notificacion_60dias?: boolean;
+  notificacion_30dias?: boolean;
   notificacion_15dias: boolean;
-  notificacion_10dias: boolean;
   notificacion_5dias: boolean;
   notificacion_1dia: boolean;
   razon_desactivacion: string | null;
@@ -152,8 +167,9 @@ export interface ConvenioInvestigacion {
   vigencia_hasta_actual: string | null;
   estado_preventivo: string | null;
   notificaciones_activas: boolean;
+  notificacion_60dias?: boolean;
+  notificacion_30dias?: boolean;
   notificacion_15dias: boolean;
-  notificacion_10dias: boolean;
   notificacion_5dias: boolean;
   notificacion_1dia: boolean;
   razon_desactivacion: string | null;
@@ -171,8 +187,9 @@ export interface ConvenioProximoVencer {
   dias_restantes: number;
   estado_general: string | null;
   notificaciones_activas: boolean;
+  notificacion_60dias?: boolean;
+  notificacion_30dias?: boolean;
   notificacion_15dias: boolean;
-  notificacion_10dias: boolean;
   notificacion_5dias: boolean;
   notificacion_1dia: boolean;
   tabla_origen: string;

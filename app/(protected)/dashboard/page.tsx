@@ -10,40 +10,34 @@ import {
   ArrowUpRight,
   Bell,
   CheckCircle2,
-  ShieldAlert,
 } from "lucide-react";
 
-export const revalidate = 0; // Fresh server data on every request
+export const revalidate = 0;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  // Fetch counts from all 6 tables
+  // Fetch counts from all tables
   const [
     { count: countIntVigentes },
     { count: countNacionales },
     { count: countInternacionales },
     { count: countTramite },
-    { count: countRedes },
-    { count: countInvestigacion },
     { data: proximosVencer },
   ] = await Promise.all([
     supabase.from("convenios_internacionales_vigentes").select("*", { count: "exact", head: true }),
     supabase.from("convenios_nacionales").select("*", { count: "exact", head: true }),
     supabase.from("convenios_internacionales").select("*", { count: "exact", head: true }),
     supabase.from("convenios_tramite").select("*", { count: "exact", head: true }),
-    supabase.from("convenios_redes").select("*", { count: "exact", head: true }),
-    supabase.from("convenios_investigacion").select("*", { count: "exact", head: true }),
-    supabase.from("convenios_proximos_vencer").select("*").order("dias_restantes", { ascending: true }).limit(10),
+    supabase.from("convenios_proximos_vencer").select("*").order("dias_restantes", { ascending: true }).limit(15),
   ]);
 
-  const totalVigentes = (countIntVigentes || 0) + (countNacionales || 0);
-
-  // Group upcoming expirations by threshold
+  // Threshold groupings
   const urgentes1d = proximosVencer?.filter((item) => item.dias_restantes <= 1) || [];
   const urgentes5d = proximosVencer?.filter((item) => item.dias_restantes > 1 && item.dias_restantes <= 5) || [];
-  const prevencion10d = proximosVencer?.filter((item) => item.dias_restantes > 5 && item.dias_restantes <= 10) || [];
-  const informativos15d = proximosVencer?.filter((item) => item.dias_restantes > 10 && item.dias_restantes <= 15) || [];
+  const control15d = proximosVencer?.filter((item) => item.dias_restantes > 5 && item.dias_restantes <= 15) || [];
+  const prevencion30d = proximosVencer?.filter((item) => item.dias_restantes > 15 && item.dias_restantes <= 30) || [];
+  const prevencion60d = proximosVencer?.filter((item) => item.dias_restantes > 30 && item.dias_restantes <= 65) || [];
 
   return (
     <div className="space-y-6">
@@ -57,7 +51,7 @@ export default async function DashboardPage() {
             Gestión de Convenios ORI 2026
           </h1>
           <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-            Control en tiempo real, alertas de vencimiento automatizadas y trazabilidad completa de convenios nacionales e internacionales.
+            Control en tiempo real, alertas automáticas formales a 60 días, 30 días, 15 días, 5 días y 1 día, y trazabilidad institucional.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -80,7 +74,6 @@ export default async function DashboardPage() {
 
       {/* Stat Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1 */}
         <div className="glass-card flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-400">Int. Vigentes</p>
@@ -92,31 +85,28 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Card 2 */}
         <div className="glass-card flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-400">IES Nacionales</p>
             <h3 className="text-2xl font-bold text-white mt-1">{countNacionales || 0}</h3>
-            <span className="text-[10px] text-blue-400 font-medium">Instituciones Colombia</span>
+            <span className="text-[10px] text-amber-400 font-medium">Instituciones Colombia</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
             <MapPin className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Card 3 */}
         <div className="glass-card flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-400">IES Internacionales</p>
             <h3 className="text-2xl font-bold text-white mt-1">{countInternacionales || 0}</h3>
-            <span className="text-[10px] text-slate-400 font-medium">Histórico Total</span>
+            <span className="text-[10px] text-indigo-400 font-medium">Histórico Total</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
             <Globe2 className="w-6 h-6" />
           </div>
         </div>
 
-        {/* Card 4 */}
         <div className="glass-card flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-slate-400">En Trámite</p>
@@ -131,26 +121,27 @@ export default async function DashboardPage() {
 
       {/* Notifications & Expirations Section */}
       <div className="glass-card space-y-4">
-        <div className="flex items-center justify-between border-b border-[#334155] pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#334155] pb-3 gap-2">
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-amber-400" />
             <h2 className="text-base font-bold text-white">
-              Sistema de Alertas por Vencimiento
+              Sistema de Alertas por Vencimiento (5 Reglas)
             </h2>
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
             <span className="badge badge-danger">🔴 1D: {urgentes1d.length}</span>
             <span className="badge badge-warning">🟠 5D: {urgentes5d.length}</span>
-            <span className="badge badge-caution">🟡 10D: {prevencion10d.length}</span>
-            <span className="badge badge-info">🔵 15D: {informativos15d.length}</span>
+            <span className="badge badge-caution">🟡 15D: {control15d.length}</span>
+            <span className="badge badge-info">🔵 1M (30D): {prevencion30d.length}</span>
+            <span className="badge badge-info">🔵 2M (60D): {prevencion60d.length}</span>
           </div>
         </div>
 
         {(!proximosVencer || proximosVencer.length === 0) ? (
           <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-            <p className="font-semibold text-slate-300">No hay convenios en umbral crítico de vencimiento hoy.</p>
-            <p className="text-slate-500">Todos los convenios vigentes están al día o fuera del período de 15 días.</p>
+            <p className="font-semibold text-slate-300">No hay convenios en umbral de vencimiento próximo hoy.</p>
+            <p className="text-slate-500">Todos los convenios están al día o fuera del límite de 60 días.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -161,16 +152,24 @@ export default async function DashboardPage() {
 
               if (item.dias_restantes <= 1) {
                 badgeClass = "badge-danger";
-                badgeText = "CRÍTICO (Último Día)";
+                badgeText = "🔴 1 Día (Crítico Final)";
                 iconColor = "text-red-400";
               } else if (item.dias_restantes <= 5) {
                 badgeClass = "badge-warning";
-                badgeText = `${item.dias_restantes} días (Urgente)`;
+                badgeText = `${item.dias_restantes} Días (Urgente)`;
                 iconColor = "text-amber-400";
-              } else if (item.dias_restantes <= 10) {
+              } else if (item.dias_restantes <= 15) {
                 badgeClass = "badge-caution";
-                badgeText = `${item.dias_restantes} días (Prevención)`;
+                badgeText = `${item.dias_restantes} Días (15 Días)`;
                 iconColor = "text-yellow-400";
+              } else if (item.dias_restantes <= 30) {
+                badgeClass = "badge-info";
+                badgeText = `${item.dias_restantes} Días (1 Mes)`;
+                iconColor = "text-sky-400";
+              } else {
+                badgeClass = "badge-info";
+                badgeText = `${item.dias_restantes} Días (2 Meses)`;
+                iconColor = "text-blue-400";
               }
 
               return (
