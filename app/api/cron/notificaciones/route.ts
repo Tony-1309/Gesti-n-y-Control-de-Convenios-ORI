@@ -1,11 +1,29 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/utils/supabase/server";
-import { getConveniosProximosVencer } from "@/lib/queries";
+import { getConveniosProximosVencer, ProximoVencerItem } from "@/lib/queries";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-function buildFormalEmailHTML(item: {
+function getCategoryName(tabla: string) {
+  switch (tabla) {
+    case "convenios_internacionales_vigentes":
+      return "Int. Vigentes";
+    case "convenios_nacionales":
+      return "IES Nacionales";
+    case "convenios_internacionales":
+      return "IES Internacionales";
+    case "convenios_redes":
+      return "REDES";
+    case "convenios_investigacion":
+      return "Investigación";
+    default:
+      return "Convenios";
+  }
+}
+
+// Single Item Email HTML
+function buildSingleEmailHTML(item: {
   institucion?: string | null;
   codigo?: string | null;
   pais?: string | null;
@@ -14,24 +32,24 @@ function buildFormalEmailHTML(item: {
 }) {
   const dias = item.dias_restantes ?? 0;
   let urgencyTitle = "ALERTA PREVENTIVA (2 Meses)";
-  let headerColor = "#2563eb"; // Blue
+  let headerColor = "#2563eb";
   let badgeColor = "#3b82f6";
 
   if (dias <= 1) {
     urgencyTitle = "🚨 ALERTA CRÍTICA (ÚLTIMO DÍA)";
-    headerColor = "#dc2626"; // Red
+    headerColor = "#dc2626";
     badgeColor = "#ef4444";
   } else if (dias <= 5) {
     urgencyTitle = "⚠️ ALERTA URGENTE (5 Días)";
-    headerColor = "#ea580c"; // Orange
+    headerColor = "#ea580c";
     badgeColor = "#f97316";
   } else if (dias <= 15) {
     urgencyTitle = "🔔 ALERTA DE VENCIMIENTO (15 Días)";
-    headerColor = "#d97706"; // Amber
+    headerColor = "#d97706";
     badgeColor = "#f59e0b";
   } else if (dias <= 30) {
     urgencyTitle = "📋 ALERTA PREVENTIVA (1 Mes)";
-    headerColor = "#0284c7"; // Sky Blue
+    headerColor = "#0284c7";
     badgeColor = "#38bdf8";
   }
 
@@ -72,7 +90,7 @@ function buildFormalEmailHTML(item: {
                 <td style="padding: 25px 30px 15px 30px;">
                   <p style="margin: 0; font-size: 14px; color: #e2e8f0; line-height: 1.6;">
                     Cordial saludo,<br><br>
-                    Nos dirigimos a usted para informarle de manera preventiva sobre el estado y vigencia del convenio interinstitucional detallado a continuación:
+                    Nos dirigimos a usted para informarle de manera preventiva sobre la próxima culminación de la vigencia del convenio interinstitucional detallado a continuación:
                   </p>
                 </td>
               </tr>
@@ -125,12 +143,119 @@ function buildFormalEmailHTML(item: {
                 </td>
               </tr>
 
+              <!-- Despedida y Firma -->
+              <tr>
+                <td style="padding: 20px 30px; background-color: #0b1324; border-top: 1px solid #334155;">
+                  <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.6;">
+                    Atentamente,<br>
+                    <strong style="color: #ffffff;">Oficina de Relaciones Internacionales (ORI)</strong><br>
+                    Universidad Mariana — Pasto, Nariño, Colombia<br>
+                    <span style="font-size: 11px; color: #64748b;">Sistema de Gestión y Control de Convenios 2026</span>
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
+// Consolidated Summary Email HTML
+function buildConsolidatedEmailHTML(items: ProximoVencerItem[]) {
+  const tableRows = items.map((item) => {
+    const dias = item.dias_restantes;
+    let badgeColor = "#3b82f6";
+    if (dias <= 1) badgeColor = "#ef4444";
+    else if (dias <= 5) badgeColor = "#f97316";
+    else if (dias <= 15) badgeColor = "#f59e0b";
+
+    return `
+      <tr style="border-bottom: 1px solid #334155;">
+        <td style="padding: 12px; font-size: 13px; color: #ffffff; font-weight: bold;">${item.institucion || 'Sin Nombre'}</td>
+        <td style="padding: 12px; font-size: 12px; color: #cbd5e1;">${item.codigo || 'N/A'}</td>
+        <td style="padding: 12px; font-size: 12px; color: #94a3b8;">${getCategoryName(item.tabla_origen)}</td>
+        <td style="padding: 12px; font-size: 12px; color: #e2e8f0;">${item.fecha_vencimiento}</td>
+        <td style="padding: 12px;" align="center">
+          <span style="display: inline-block; padding: 4px 10px; background-color: ${badgeColor}; color: #ffffff; font-size: 11px; font-weight: bold; border-radius: 12px;">
+            ${dias} días
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  return `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Resumen de Convenios por Vencer ORI</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #0f172a; font-family: Arial, Helvetica, sans-serif; color: #f8fafc;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f172a; padding: 30px 10px;">
+        <tr>
+          <td align="center">
+            <table width="650" cellpadding="0" cellspacing="0" style="background-color: #1e293b; border-radius: 12px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+              
+              <!-- Encabezado Institucional -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #1a2e5a 0%, #0f172a 100%); padding: 25px 30px; border-bottom: 3px solid #c9a84c;">
+                  <table width="100%">
+                    <tr>
+                      <td>
+                        <h1 style="margin: 0; font-size: 20px; font-weight: bold; color: #ffffff; letter-spacing: 0.5px;">UNIVERSIDAD MARIANA</h1>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #c9a84c; font-weight: bold; text-transform: uppercase;">Oficina de Relaciones Internacionales (ORI)</p>
+                      </td>
+                      <td align="right">
+                        <span style="display: inline-block; padding: 6px 14px; background-color: #c9a84c; color: #0f172a; font-size: 11px; font-weight: bold; border-radius: 20px;">
+                          📋 RESUMEN DIARIO CONSOLIDADO
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- Saludo Cordial -->
+              <tr>
+                <td style="padding: 25px 30px 15px 30px;">
+                  <p style="margin: 0; font-size: 14px; color: #e2e8f0; line-height: 1.6;">
+                    Cordial saludo,<br><br>
+                    Le presentamos el resumen consolidado de los <strong>${items.length} convenios interinstitucionales</strong> próximos a vencer dentro del rango de alerta configurado (2 meses, 1 mes, 15 días, 5 días y 1 día):
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Tabla Consolidada -->
+              <tr>
+                <td style="padding: 0 30px 25px 30px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f172a; border-radius: 10px; border: 1px solid #334155; border-collapse: collapse; overflow: hidden;">
+                    <thead>
+                      <tr style="background-color: #0b1324; border-bottom: 1px solid #334155;">
+                        <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Institución</th>
+                        <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Código</th>
+                        <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Categoría</th>
+                        <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Vencimiento</th>
+                        <th style="padding: 10px 12px; text-align: center; font-size: 11px; color: #94a3b8; text-transform: uppercase;">Restante</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${tableRows}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+
               <!-- Recomendación de Acción -->
               <tr>
                 <td style="padding: 0 30px 25px 30px;">
                   <div style="background-color: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 15px; border-radius: 6px;">
                     <p style="margin: 0; font-size: 13px; color: #93c5fd; line-height: 1.5;">
-                      <strong>Acción sugerida:</strong> Favor revisar el estado de las actividades de movilidad o la extensión de prórroga con la contraparte para determinar si corresponde renovar o finalizar el acuerdo.
+                      <strong>Acción sugerida:</strong> Favor revisar en la plataforma la necesidad de renovar, solicitar prórroga o coordinar con los responsables institucionales.
                     </p>
                   </div>
                 </td>
@@ -164,10 +289,21 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient();
 
-    // Fetch registered recipient emails from configuracion_app or env
-    const { data: configData } = await supabase.from("configuracion_app").select("emails_notificacion").limit(1).single();
-    let recipients: string[] = configData?.emails_notificacion || [];
+    // Fetch full system configuration
+    const { data: configData } = await supabase.from("configuracion_app").select("*").limit(1).single();
 
+    const canalEmailActivo = configData?.canal_email_activo !== false;
+    const categoriasActivas = configData?.categorias_activas || [
+      "convenios_internacionales_vigentes",
+      "convenios_nacionales",
+      "convenios_internacionales",
+      "convenios_tramite",
+      "convenios_redes",
+      "convenios_investigacion",
+    ];
+    const formatoEnvio = configData?.formato_envio || "consolidado";
+
+    let recipients: string[] = configData?.emails_notificacion || [];
     if (customEmail) {
       recipients = [customEmail];
     } else if (recipients.length === 0) {
@@ -176,7 +312,7 @@ export async function POST(request: Request) {
 
     const senderEmail = process.env.NOTIFICATION_EMAIL_FROM || "onboarding@resend.dev";
 
-    // 1. Send SPECIFIC AGREEMENT Email Alert if convenioId and tabla are provided
+    // 1. Send SPECIFIC AGREEMENT Email Alert
     if (convenioId && tabla) {
       const { data: realItem, error: fetchErr } = await supabase
         .from(tabla)
@@ -188,7 +324,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Convenio no encontrado para enviar alerta." }, { status: 404 });
       }
 
-      const name = realItem.universidad || realItem.universidad_entidad || realItem.red_nombre || realItem.institucion || "Convenio Sin Nombre";
+      const name = realItem.universidad || realItem.universidad_entidad || realItem.red_nombre || realItem.institucion || realItem.nombre_convenio || "Convenio Sin Nombre";
       const code = realItem.codificacion || realItem.codigo || realItem.item || "Sin Código";
       const country = realItem.pais || realItem.ciudad || realItem.pais_ciudad || "N/A";
       const vencStr = realItem.vigencia_hasta_actual || realItem.vigencia_hasta;
@@ -204,7 +340,7 @@ export async function POST(request: Request) {
         }
       }
 
-      const emailHTML = buildFormalEmailHTML({
+      const emailHTML = buildSingleEmailHTML({
         institucion: name,
         codigo: code,
         pais: country,
@@ -223,14 +359,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: sendError.message }, { status: 400 });
       }
 
-      // Log notification
-      await supabase.from("notificaciones_log").insert({
-        convenio_id: convenioId,
-        tabla_origen: tabla,
-        tipo_notificacion: "manual_detail_alert",
-        destinatario_email: recipients.join(", "),
-      });
-
       return NextResponse.json({ success: true, emailResult, recipients, item: name });
     }
 
@@ -244,9 +372,8 @@ export async function POST(request: Request) {
         dias_restantes: 15,
       };
 
-      const emailHTML = buildFormalEmailHTML(testItem);
+      const emailHTML = buildSingleEmailHTML(testItem);
 
-      // Resend API send to configured recipients
       const { data: emailResult, error: sendError } = await resend.emails.send({
         from: senderEmail,
         to: recipients,
@@ -261,51 +388,68 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, emailResult, recipients });
     }
 
-    // 3. Dynamic calculation of expiring agreements up to 65 days (Cron Job)
-    const proximos = await getConveniosProximosVencer(65);
-
-    if (!proximos || proximos.length === 0) {
-      return NextResponse.json({ message: "No hay convenios pendientes de notificar hoy." });
+    // 3. Dynamic Calculation of Expiring Agreements (Cron Job / Automatic Run)
+    if (!canalEmailActivo) {
+      return NextResponse.json({ message: "El canal de notificación por correo electrónico se encuentra pausado en configuración." });
     }
 
-    let sentCount = 0;
+    const proximos = await getConveniosProximosVencer(65, categoriasActivas);
 
-    for (const item of proximos) {
+    if (!proximos || proximos.length === 0) {
+      return NextResponse.json({ message: "No hay convenios pendientes de notificar hoy en las categorías seleccionadas." });
+    }
+
+    // Filter items matching active threshold rules
+    const itemsToNotify = proximos.filter((item) => {
       const dias = item.dias_restantes;
+      if (dias <= 1 && item.notificacion_1dia !== false) return true;
+      if (dias > 1 && dias <= 5 && item.notificacion_5dias !== false) return true;
+      if (dias > 5 && dias <= 15 && item.notificacion_15dias !== false) return true;
+      if (dias > 15 && dias <= 30 && item.notificacion_30dias !== false) return true;
+      if (dias > 30 && dias <= 65 && item.notificacion_60dias !== false) return true;
+      return false;
+    });
 
-      // Filter by threshold toggles
-      let shouldSend = false;
-      if (dias <= 1 && item.notificacion_1dia !== false) shouldSend = true;
-      else if (dias > 1 && dias <= 5 && item.notificacion_5dias !== false) shouldSend = true;
-      else if (dias > 5 && dias <= 15 && item.notificacion_15dias !== false) shouldSend = true;
-      else if (dias > 15 && dias <= 30 && item.notificacion_30dias !== false) shouldSend = true;
-      else if (dias > 30 && dias <= 65 && item.notificacion_60dias !== false) shouldSend = true;
+    if (itemsToNotify.length === 0) {
+      return NextResponse.json({ message: "No hay convenios en las ventanas de notificación configuradas hoy." });
+    }
 
-      if (!shouldSend) continue;
-
-      const emailHTML = buildFormalEmailHTML(item);
+    // Mode A: CONSOLIDATED SUMMARY EMAIL
+    if (formatoEnvio === "consolidado") {
+      const emailHTML = buildConsolidatedEmailHTML(itemsToNotify);
 
       const { data: resData, error: sendErr } = await resend.emails.send({
         from: senderEmail,
         to: recipients,
-        subject: `⚠️ [NOTIFICACIÓN ORI] Convenio Próximo a Vencer (${dias} Días): ${item.institucion || item.codigo}`,
+        subject: `📋 [RESUMEN ORI] ${itemsToNotify.length} Convenio(s) Próximos a Vencer - Universidad Mariana`,
+        html: emailHTML,
+      });
+
+      if (sendErr) {
+        return NextResponse.json({ error: sendErr.message }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true, sentCount: 1, totalItemsNotified: itemsToNotify.length, mode: "consolidado" });
+    }
+
+    // Mode B: INDIVIDUAL EMAILS PER AGREEMENT
+    let sentCount = 0;
+    for (const item of itemsToNotify) {
+      const emailHTML = buildSingleEmailHTML(item);
+
+      const { data: resData, error: sendErr } = await resend.emails.send({
+        from: senderEmail,
+        to: recipients,
+        subject: `⚠️ [NOTIFICACIÓN ORI] Convenio Próximo a Vencer (${item.dias_restantes} Días): ${item.institucion || item.codigo}`,
         html: emailHTML,
       });
 
       if (!sendErr && resData) {
-        // Log sent alert
-        await supabase.from("notificaciones_log").insert({
-          convenio_id: item.id,
-          tabla_origen: item.tabla_origen,
-          tipo_notificacion: `${dias}_dias`,
-          destinatario_email: recipients.join(", "),
-        });
-
         sentCount++;
       }
     }
 
-    return NextResponse.json({ success: true, sentCount, totalExpiring: proximos.length });
+    return NextResponse.json({ success: true, sentCount, totalItemsNotified: itemsToNotify.length, mode: "individual" });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

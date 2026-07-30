@@ -1,6 +1,28 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/server";
 
+const DEFAULT_CONFIG = {
+  emails_notificacion: ["relacionconvenios@umariana.edu.co"],
+  umbral_dias_1: 60,
+  umbral_dias_2: 30,
+  umbral_dias_3: 15,
+  umbral_dias_4: 5,
+  umbral_dias_5: 1,
+  canal_email_activo: true,
+  canal_dashboard_activo: true,
+  hora_envio_colombia: "08:00",
+  frecuencia_envio: "diario",
+  formato_envio: "consolidado",
+  categorias_activas: [
+    "convenios_internacionales_vigentes",
+    "convenios_nacionales",
+    "convenios_internacionales",
+    "convenios_tramite",
+    "convenios_redes",
+    "convenios_investigacion",
+  ],
+};
+
 export async function GET() {
   try {
     const supabase = createAdminClient();
@@ -10,15 +32,14 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Default configuration if empty
-    const config = data || {
-      emails_notificacion: ["relacionconvenios@umariana.edu.co"],
-      umbral_dias_1: 60,
-      umbral_dias_2: 30,
-      umbral_dias_3: 15,
-      umbral_dias_4: 5,
-      umbral_dias_5: 1,
-    };
+    const config = data
+      ? {
+          ...DEFAULT_CONFIG,
+          ...data,
+          emails_notificacion: data.emails_notificacion || DEFAULT_CONFIG.emails_notificacion,
+          categorias_activas: data.categorias_activas || DEFAULT_CONFIG.categorias_activas,
+        }
+      : DEFAULT_CONFIG;
 
     return NextResponse.json({ config });
   } catch (err: any) {
@@ -29,10 +50,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, emails_notificacion, bulkField, bulkValue } = body;
+    const { action, config: newConfig, emails_notificacion, bulkField, bulkValue } = body;
     const supabase = createAdminClient();
 
-    // 1. Bulk toggle rule across all tables
+    // 1. Bulk toggle threshold rule across all tables
     if (action === "bulk_toggle" && bulkField && typeof bulkValue === "boolean") {
       const tables = [
         "convenios_internacionales_vigentes",
@@ -55,27 +76,30 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. Save recipient emails list
-    if (Array.isArray(emails_notificacion)) {
+    // 2. Save full settings (Channels, Times, Categories, Format, Emails)
+    const payload = newConfig || (Array.isArray(emails_notificacion) ? { emails_notificacion } : null);
+
+    if (payload) {
       const { data: existing } = await supabase.from("configuracion_app").select("id").limit(1).single();
+
+      const saveData = {
+        ...payload,
+        updated_at: new Date().toISOString(),
+      };
 
       if (existing) {
         await supabase
           .from("configuracion_app")
-          .update({ emails_notificacion, updated_at: new Date().toISOString() })
+          .update(saveData)
           .eq("id", existing.id);
       } else {
         await supabase.from("configuracion_app").insert({
-          emails_notificacion,
-          umbral_dias_1: 60,
-          umbral_dias_2: 30,
-          umbral_dias_3: 15,
-          umbral_dias_4: 5,
-          umbral_dias_5: 1,
+          ...DEFAULT_CONFIG,
+          ...saveData,
         });
       }
 
-      return NextResponse.json({ success: true, emails_notificacion });
+      return NextResponse.json({ success: true, config: saveData });
     }
 
     return NextResponse.json({ error: "Acción no reconocida" }, { status: 400 });

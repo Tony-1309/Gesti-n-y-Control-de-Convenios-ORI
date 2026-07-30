@@ -17,16 +17,24 @@ export interface ProximoVencerItem {
   tabla_origen: string;
 }
 
-export async function getConveniosProximosVencer(maxDias: number = 65): Promise<ProximoVencerItem[]> {
+export async function getConveniosProximosVencer(
+  maxDias: number = 65,
+  allowedCategories?: string[]
+): Promise<ProximoVencerItem[]> {
   const supabase = createAdminClient();
 
-  const tables = [
+  const allTables = [
     { name: "convenios_internacionales_vigentes", dateCol: "vigencia_hasta_actual", nameCol: "universidad", codeCol: "codificacion" },
     { name: "convenios_nacionales", dateCol: "vigencia_hasta_actual", nameCol: "universidad_entidad", codeCol: "codigo" },
     { name: "convenios_internacionales", dateCol: "vigencia_hasta_actual", nameCol: "universidad", codeCol: "codificacion" },
     { name: "convenios_redes", dateCol: "vigencia_hasta_actual", nameCol: "red_nombre", codeCol: "codificacion" },
     { name: "convenios_investigacion", dateCol: "vigencia_hasta_actual", nameCol: "universidad_entidad", codeCol: "codificacion" },
   ];
+
+  // Filter tables by allowedCategories if specified
+  const tables = allowedCategories && allowedCategories.length > 0
+    ? allTables.filter((t) => allowedCategories.includes(t.name))
+    : allTables;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
