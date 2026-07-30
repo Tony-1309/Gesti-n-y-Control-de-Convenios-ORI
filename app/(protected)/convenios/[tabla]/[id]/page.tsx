@@ -12,6 +12,128 @@ import {
   MailCheck,
 } from "lucide-react";
 
+interface FieldSpec {
+  key: string;
+  label: string;
+  type?: "text" | "date" | "select" | "number" | "textarea";
+  options?: string[];
+  fullWidth?: boolean;
+}
+
+function getFieldSpecsForTable(tabla: string): FieldSpec[] {
+  if (tabla === "convenios_tramite") {
+    return [
+      { key: "item", label: "Item / Número Ref", type: "number" },
+      { key: "fecha_recepcion", label: "Fecha de Recepción", type: "date" },
+      { key: "facultad_solicitante", label: "Facultad Solicitante" },
+      { key: "programa_academico", label: "Programa Académico" },
+      { key: "persona_solicitante", label: "Persona Solicitante" },
+      { key: "tipo_convenio", label: "Tipo Convenio" },
+      { key: "institucion", label: "Institución / Universidad Contraparte" },
+      { key: "pais_ciudad", label: "País / Ciudad" },
+      { key: "contacto", label: "Contacto / Correo Electrónico" },
+      { key: "estado_tramite", label: "Estado del Trámite" },
+      { key: "accion_pendiente", label: "Acción Pendiente", fullWidth: true },
+      { key: "observaciones", label: "Observaciones Adicionales", type: "textarea", fullWidth: true },
+    ];
+  }
+
+  if (tabla === "convenios_redes") {
+    return [
+      { key: "codificacion", label: "Codificación / RNI" },
+      { key: "red_nombre", label: "Nombre de la Red" },
+      { key: "pais", label: "País" },
+      { key: "ciudad_pais", label: "Ciudad / País" },
+      { key: "convenio_digital", label: "Convenio Digital", type: "select", options: ["SI", "NO"] },
+      { key: "convenio_fisico", label: "Convenio Físico", type: "select", options: ["SI", "NO"] },
+      { key: "tipo_convenio", label: "Tipo Convenio" },
+      { key: "contacto", label: "Contacto / Representante" },
+      { key: "correo_electronico", label: "Correo Electrónico de Contacto" },
+      { key: "vigencia_desde_original", label: "Vigencia Desde (Original)", type: "date" },
+      { key: "vigencia_hasta_original", label: "Vigencia Hasta (Original)", type: "date" },
+      { key: "vigencia_desde_actual", label: "Vigencia Desde (Actual)", type: "date" },
+      { key: "vigencia_hasta_actual", label: "Vigencia Hasta (Actual)", type: "date" },
+      { key: "estado_general", label: "Estado General", type: "select", options: ["VIGENTE", "TERMINADO", "VENCIDO"] },
+      { key: "duracion", label: "Duración / Término" },
+      { key: "persona_registra", label: "Persona que Registra" },
+      { key: "objetivo", label: "Objetivo / Alcance de la Red", type: "textarea", fullWidth: true },
+      { key: "observaciones", label: "Observaciones Adicionales / Enlace", type: "textarea", fullWidth: true },
+    ];
+  }
+
+  if (tabla === "convenios_investigacion") {
+    return [
+      { key: "codificacion", label: "Codificación / RNI" },
+      { key: "universidad_entidad", label: "Universidad / Entidad Contraparte" },
+      { key: "nombre_convenio", label: "Nombre del Convenio / Proyecto" },
+      { key: "pais", label: "País" },
+      { key: "ciudad_pais", label: "Ciudad / País" },
+      { key: "convenio_digital", label: "Convenio Digital", type: "select", options: ["SI", "NO"] },
+      { key: "convenio_fisico", label: "Convenio Físico", type: "select", options: ["SI", "NO"] },
+      { key: "tipo_convenio", label: "Tipo Convenio" },
+      { key: "contacto", label: "Contacto / Investigador Principal" },
+      { key: "correo_electronico", label: "Correo Electrónico de Contacto" },
+      { key: "vigencia_desde_original", label: "Vigencia Desde (Original)", type: "date" },
+      { key: "vigencia_hasta_original", label: "Vigencia Hasta (Original)", type: "date" },
+      { key: "vigencia_desde_actual", label: "Vigencia Desde (Actual)", type: "date" },
+      { key: "vigencia_hasta_actual", label: "Vigencia Hasta (Actual)", type: "date" },
+      { key: "estado_general", label: "Estado General", type: "select", options: ["VIGENTE", "TERMINADO", "VENCIDO"] },
+      { key: "duracion", label: "Duración / Término" },
+      { key: "persona_registra", label: "Persona que Registra" },
+      { key: "objetivo", label: "Objetivo del Convenio", type: "textarea", fullWidth: true },
+      { key: "observaciones", label: "Observaciones Adicionales / Enlace", type: "textarea", fullWidth: true },
+    ];
+  }
+
+  if (tabla === "convenios_nacionales") {
+    return [
+      { key: "codigo", label: "Código / Ref RNI" },
+      { key: "universidad_entidad", label: "Universidad / Entidad Contraparte" },
+      { key: "ciudad", label: "Ciudad" },
+      { key: "convenio_digital", label: "Convenio Digital", type: "select", options: ["SI", "NO"] },
+      { key: "convenio_fisico", label: "Convenio Físico", type: "select", options: ["SI", "NO"] },
+      { key: "tipo_convenio_intercambio", label: "Tipo Convenio / Intercambio" },
+      { key: "tipo_convenio", label: "Tipo Convenio", type: "select", options: ["MARCO", "ESPECIFICO", "OTROS SI"] },
+      { key: "contacto_ori", label: "Contacto ORI / Institucional" },
+      { key: "correo_electronico", label: "Correo Electrónico de Contacto" },
+      { key: "vigencia_desde_original", label: "Vigencia Desde (Original)", type: "date" },
+      { key: "vigencia_hasta_original", label: "Vigencia Hasta (Original)", type: "date" },
+      { key: "vigencia_desde_actual", label: "Vigencia Desde (Actual)", type: "date" },
+      { key: "vigencia_hasta_actual", label: "Vigencia Hasta (Actual)", type: "date" },
+      { key: "estado_general", label: "Estado General", type: "select", options: ["VIGENTE", "TERMINADO", "VENCIDO"] },
+      { key: "duracion", label: "Duración / Término" },
+      { key: "persona_registra", label: "Persona que Registra" },
+      { key: "estado_preventivo", label: "Estado Preventivo" },
+      { key: "objetivo", label: "Objetivo del Convenio", type: "textarea", fullWidth: true },
+      { key: "observaciones", label: "Observaciones Adicionales / Enlace", type: "textarea", fullWidth: true },
+    ];
+  }
+
+  // Default: convenios_internacionales_vigentes and convenios_internacionales
+  return [
+    { key: "codificacion", label: "Codificación / RNI" },
+    { key: "universidad", label: "Universidad / Institución Contraparte" },
+    { key: "pais", label: "País" },
+    { key: "ciudad_pais", label: "Ciudad / País" },
+    { key: "convenio_digital", label: "Convenio Digital", type: "select", options: ["SI", "NO"] },
+    { key: "convenio_fisico", label: "Convenio Físico", type: "select", options: ["SI", "NO"] },
+    { key: "tipo_convenio_intercambio", label: "Tipo Convenio / Intercambio" },
+    { key: "tipo_convenio", label: "Tipo Convenio", type: "select", options: ["MARCO", "ESPECIFICO", "OTROS SI"] },
+    { key: "contacto_ori", label: "Contacto ORI / Universidad" },
+    { key: "correo_electronico", label: "Correo Electrónico de Contacto" },
+    { key: "vigencia_desde_original", label: "Vigencia Desde (Original)", type: "date" },
+    { key: "vigencia_hasta_original", label: "Vigencia Hasta (Original)", type: "date" },
+    { key: "vigencia_desde_actual", label: "Vigencia Desde (Actual)", type: "date" },
+    { key: "vigencia_hasta_actual", label: "Vigencia Hasta (Actual)", type: "date" },
+    { key: "estado_general", label: "Estado General", type: "select", options: ["VIGENTE", "TERMINADO", "VENCIDO"] },
+    { key: "duracion", label: "Duración / Término" },
+    { key: "persona_registra", label: "Persona que Registra" },
+    { key: "estado_preventivo", label: "Estado Preventivo" },
+    { key: "objetivo", label: "Objetivo del Convenio", type: "textarea", fullWidth: true },
+    { key: "observaciones", label: "Observaciones Adicionales / Enlace", type: "textarea", fullWidth: true },
+  ];
+}
+
 export default function ConvenioDetailPage({
   params,
 }: {
@@ -30,6 +152,8 @@ export default function ConvenioDetailPage({
   const [sendingRealEmail, setSendingRealEmail] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [emailResult, setEmailResult] = useState<string | null>(null);
+
+  const fieldSpecs = getFieldSpecsForTable(tabla);
 
   useEffect(() => {
     async function loadData() {
@@ -115,7 +239,7 @@ export default function ConvenioDetailPage({
   if (loading) {
     return (
       <div className="py-12 text-center text-slate-400 text-xs">
-        Cargando detalles del convenio...
+        Cargando detalles completos del convenio...
       </div>
     );
   }
@@ -164,10 +288,10 @@ export default function ConvenioDetailPage({
         <div className="flex items-start justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-              {tabla.replace("_", " ").toUpperCase()}
+              {tabla.replace(/_/g, " ").toUpperCase()}
             </span>
             <h1 className="text-xl font-bold text-white mt-2">
-              {convenio.universidad || convenio.universidad_entidad || convenio.red_nombre || convenio.institucion || "Detalle del Convenio"}
+              {convenio.universidad || convenio.universidad_entidad || convenio.red_nombre || convenio.institucion || convenio.nombre_convenio || "Detalle del Convenio"}
             </h1>
             <p className="text-xs text-slate-400 mt-1">
               Código / Ref: {convenio.codificacion || convenio.codigo || convenio.item || "Sin Código"}
@@ -175,8 +299,8 @@ export default function ConvenioDetailPage({
           </div>
 
           <div className="text-right">
-            <span className={`badge ${convenio.estado_general === 'VIGENTE' ? 'badge-success' : 'badge-danger'}`}>
-              {convenio.estado_general || 'SIN ESTADO'}
+            <span className={`badge ${(convenio.estado_general === 'VIGENTE' || convenio.estado_tramite) ? 'badge-success' : 'badge-danger'}`}>
+              {convenio.estado_general || convenio.estado_tramite || 'SIN ESTADO'}
             </span>
           </div>
         </div>
@@ -307,111 +431,50 @@ export default function ConvenioDetailPage({
         )}
       </div>
 
-      {/* Editable Fields Form */}
+      {/* Editable Fields Form (Dynamic for EVERY table column) */}
       <div className="glass-card space-y-6">
         <h2 className="text-base font-bold text-white border-b border-[#334155] pb-2">
-          Datos Generales del Convenio
+          Datos Generales y Específicos del Convenio ({tabla.replace(/_/g, " ").toUpperCase()})
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Universidad / Entidad Contraparte
-            </label>
-            <input
-              type="text"
-              value={convenio.universidad || convenio.universidad_entidad || convenio.red_nombre || convenio.institucion || ""}
-              onChange={(e) => handleChange(convenio.universidad !== undefined ? "universidad" : "universidad_entidad", e.target.value)}
-              className="form-input"
-            />
-          </div>
+          {fieldSpecs.map((spec) => (
+            <div key={spec.key} className={spec.fullWidth ? "md:col-span-2" : ""}>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                {spec.label}
+              </label>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              País / Ciudad
-            </label>
-            <input
-              type="text"
-              value={convenio.pais || convenio.ciudad || convenio.pais_ciudad || ""}
-              onChange={(e) => handleChange(convenio.pais !== undefined ? "pais" : "ciudad", e.target.value)}
-              className="form-input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Vigencia Desde (Actual)
-            </label>
-            <input
-              type="date"
-              value={convenio.vigencia_desde_actual || convenio.vigencia_desde || ""}
-              onChange={(e) => handleChange(convenio.vigencia_desde_actual !== undefined ? "vigencia_desde_actual" : "vigencia_desde", e.target.value)}
-              className="form-input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Vigencia Hasta (Actual)
-            </label>
-            <input
-              type="date"
-              value={convenio.vigencia_hasta_actual || convenio.vigencia_hasta || ""}
-              onChange={(e) => handleChange(convenio.vigencia_hasta_actual !== undefined ? "vigencia_hasta_actual" : "vigencia_hasta", e.target.value)}
-              className="form-input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Correo Electrónico de Contacto
-            </label>
-            <input
-              type="email"
-              value={convenio.correo_electronico || convenio.contacto || ""}
-              onChange={(e) => handleChange(convenio.correo_electronico !== undefined ? "correo_electronico" : "contacto", e.target.value)}
-              className="form-input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Estado General
-            </label>
-            <select
-              value={convenio.estado_general || "VIGENTE"}
-              onChange={(e) => handleChange("estado_general", e.target.value)}
-              className="form-input"
-            >
-              <option value="VIGENTE">VIGENTE</option>
-              <option value="TERMINADO">TERMINADO</option>
-              <option value="VENCIDO">VENCIDO</option>
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Objetivo del Convenio
-            </label>
-            <textarea
-              rows={3}
-              value={convenio.objetivo || ""}
-              onChange={(e) => handleChange("objetivo", e.target.value)}
-              className="form-input"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Observaciones Adicionales / Enlace a Documento
-            </label>
-            <input
-              type="text"
-              value={convenio.observaciones || ""}
-              onChange={(e) => handleChange("observaciones", e.target.value)}
-              className="form-input"
-            />
-          </div>
+              {spec.type === "select" && spec.options ? (
+                <select
+                  value={convenio[spec.key] || spec.options[0]}
+                  onChange={(e) => handleChange(spec.key, e.target.value)}
+                  className="form-input"
+                >
+                  {spec.options.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              ) : spec.type === "textarea" ? (
+                <textarea
+                  rows={3}
+                  value={convenio[spec.key] || ""}
+                  onChange={(e) => handleChange(spec.key, e.target.value)}
+                  placeholder={`Ingrese ${spec.label.toLowerCase()}...`}
+                  className="form-input"
+                />
+              ) : (
+                <input
+                  type={spec.type || "text"}
+                  value={convenio[spec.key] !== null && convenio[spec.key] !== undefined ? convenio[spec.key] : ""}
+                  onChange={(e) => handleChange(spec.key, e.target.value)}
+                  placeholder={`Ingrese ${spec.label.toLowerCase()}...`}
+                  className="form-input"
+                />
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>

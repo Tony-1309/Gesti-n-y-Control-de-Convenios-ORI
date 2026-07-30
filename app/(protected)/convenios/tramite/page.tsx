@@ -19,10 +19,22 @@ export default async function ConveniosTramitePage() {
     { key: "tipo_convenio", label: "Tipo Convenio" },
     { key: "institucion", label: "Institución" },
     { key: "pais_ciudad", label: "País / Ciudad" },
-    { key: "contacto", label: "Contacto" },
     { key: "estado_tramite", label: "Estado del Trámite" },
-    { key: "observaciones", label: "Observaciones" },
+  ];
+
+  const createColumns = [
+    { key: "item", label: "Item / Número Ref", type: "number" as const },
+    { key: "fecha_recepcion", label: "Fecha de Recepción", type: "date" as const },
+    { key: "facultad_solicitante", label: "Facultad Solicitante" },
+    { key: "programa_academico", label: "Programa Académico" },
+    { key: "persona_solicitante", label: "Persona Solicitante" },
+    { key: "tipo_convenio", label: "Tipo Convenio" },
+    { key: "institucion", label: "Institución / Universidad Contraparte" },
+    { key: "pais_ciudad", label: "País / Ciudad" },
+    { key: "contacto", label: "Contacto / Correo Electrónico" },
+    { key: "estado_tramite", label: "Estado del Trámite" },
     { key: "accion_pendiente", label: "Acción Pendiente" },
+    { key: "observaciones", label: "Observaciones / Enlace a Documento" },
   ];
 
   return (
@@ -31,6 +43,7 @@ export default async function ConveniosTramitePage() {
       title="Convenios en Trámite"
       subtitle="Solicitudes de convenios en revisión jurídica, rectoría o instituciones contrapartes"
       columns={columns}
+      createColumns={createColumns}
       initialData={data || []}
     />
   );

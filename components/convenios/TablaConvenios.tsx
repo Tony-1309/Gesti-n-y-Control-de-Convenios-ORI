@@ -29,6 +29,7 @@ interface Column {
 interface TablaConveniosProps {
   tabla: string;
   columns: Column[];
+  createColumns?: Column[];
   initialData: any[];
   idKey?: string;
   title: string;
@@ -38,6 +39,7 @@ interface TablaConveniosProps {
 export default function TablaConvenios({
   tabla,
   columns,
+  createColumns,
   initialData,
   idKey = "id",
   title,
@@ -64,6 +66,8 @@ export default function TablaConvenios({
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const supabase = createClient();
+
+  const formFields = createColumns || columns;
 
   const triggerToast = (msg: string) => {
     setActionFeedback(msg);
@@ -148,7 +152,7 @@ export default function TablaConvenios({
         setData([created, ...data]);
         setShowCreateModal(false);
         setNewRowData({});
-        triggerToast("¡Nuevo convenio registrado exitosamente!");
+        triggerToast("¡Nuevo convenio registrado exitosamente con todos sus campos!");
       }
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -310,7 +314,7 @@ export default function TablaConvenios({
                         <Link
                           href={`/convenios/${tabla}/${id}`}
                           className="p-1.5 rounded bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors"
-                          title="Ver detalle completo / Editar"
+                          title="Ver detalle completo / Editar todos los campos"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </Link>
@@ -372,7 +376,7 @@ export default function TablaConvenios({
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#1e293b] border border-[#334155] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
+          <div className="bg-[#1e293b] border border-[#334155] rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl my-8">
             <div className="flex items-center justify-between p-4 border-b border-[#334155] bg-gradient-to-r from-[#1a2e5a] to-[#0f172a]">
               <div className="flex items-center gap-2">
                 <Plus className="w-5 h-5 text-amber-400" />
@@ -390,7 +394,7 @@ export default function TablaConvenios({
 
             <form onSubmit={handleCreateNewRow} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {columns.map((col) => (
+                {formFields.map((col) => (
                   <div key={col.key} className={col.key === "objetivo" || col.key === "observaciones" ? "md:col-span-2" : ""}>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
                       {col.label}
